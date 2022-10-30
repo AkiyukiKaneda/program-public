@@ -7,13 +7,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
-
-import "./lib/GiftPoSConstants.sol";
-import "./lib/GiftPoSStructs.sol";
-import "./lib/TokenTransferrer.sol";
-
-import "./GiftPoSRecipient.sol";
-
 contract TestContract is ERC721, Ownable {
     using SafeMath for uint256;
 
