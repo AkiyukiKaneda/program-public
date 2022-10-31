@@ -14,11 +14,11 @@ contract TestContract is ERC721, Ownable, ReentrancyGuard {
     using Counters for Counters.Counter;
 
     struct ProposalStruct {
-        uint256 id;
+        uint256 proposalId;
         uint256 amount;
         uint256 duration;
-        uint256 upvotes;
-        uint256 downvotes;
+        uint256 nbYes;
+        uint256 nbNo;
         address payable beneficiary;
         address proposer;
         address executor;
@@ -37,16 +37,16 @@ contract TestContract is ERC721, Ownable, ReentrancyGuard {
     Counters.Counter private _nextId;
     mapping(uint256 => Counters.Counter) private _totalVote;
 
-    mapping(uint256 => ProposalStruct) private proposal;
-    mapping(uint256 => mapping(uint256 => VotedStruct)) private vote;
+    mapping(uint256 => ProposalStruct) private proposals;
+    mapping(uint256 => mapping(uint256 => VotedStruct)) private votes;
 
     constructor(
         string memory _name,
         string memory _symbol
     ) ERC721(_name, _symbol) {}
 
-    function getProposal(uint256 _id) external view returns(ProposalStruct memory) {
-        return proposal[_id];
+    function getProposal(uint256 _proposalId) external view returns(ProposalStruct memory) {
+        return proposals[_proposalId];
     }
 
     function performProposal(
@@ -63,15 +63,15 @@ contract TestContract is ERC721, Ownable, ReentrancyGuard {
 
         require(owner == msg.sender);
 
-        uint256 _id = _nextId.current();
+        uint256 _proposalId = _nextId.current();
 
-        proposal[_id].id = _id;
-        proposal[_id].duration = block.timestamp + 30 days;
-        proposal[_id].beneficiary = payable(_beneficiary);
-        proposal[_id].proposer = _proposer;
-        proposal[_id].executor = _executor;
-        proposal[_id].title = _title;
-        proposal[_id].description = _description;
+        proposals[_proposalId].proposalId = _proposalId;
+        proposals[_proposalId].duration = block.timestamp + 30 days;
+        proposals[_proposalId].beneficiary = payable(_beneficiary);
+        proposals[_proposalId].proposer = _proposer;
+        proposals[_proposalId].executor = _executor;
+        proposals[_proposalId].title = _title;
+        proposals[_proposalId].description = _description;
 
         _nextId.increment();
 
@@ -80,52 +80,52 @@ contract TestContract is ERC721, Ownable, ReentrancyGuard {
 
     function performVote(
         uint256 _tokenId,
-        uint256 _id,
+        uint256 _proposalId,
         bool _vote
     ) external nonReentrant returns(bool) {
-        uint256 _currentVoteId = _totalVote[_id].current();
-        require(vote[_id][_currentVoteId].voted != true);
-        require(proposal[_id].duration > block.timestamp);
+        uint256 _currentVoteId = _totalVote[_proposalId].current();
+        require(votes[_proposalId][_currentVoteId].voted != true);
+        require(proposals[_proposalId].duration > block.timestamp);
         address owner = ownerOf(_tokenId);
         require(owner == msg.sender);
 
-        vote[_id][_currentVoteId].voter = msg.sender;
-        vote[_id][_currentVoteId].timestamp = block.timestamp;
-        vote[_id][_currentVoteId].voted = true;
+        votes[_proposalId][_currentVoteId].voter = msg.sender;
+        votes[_proposalId][_currentVoteId].timestamp = block.timestamp;
+        votes[_proposalId][_currentVoteId].voted = true;
 
         if(_vote == true){
-            proposal[_id].upvotes++;
+            proposals[_proposalId].nbYes++;
         } else {
-            proposal[_id].downvotes++;
+            proposals[_proposalId].nbNo++;
         }
 
-        _totalVote[_id].increment();
+        _totalVote[_proposalId].increment();
 
         return true;
     }
 
-    function excutor(uint256 _id) external nonReentrant returns(bool) {
-        require(proposal[_id].paid != true);
-        require(block.timestamp > proposal[_id].duration);
-        require(proposal[_id].executor == msg.sender);
+    function excutor(uint256 _proposalId) external nonReentrant returns(bool) {
+        require(proposals[_proposalId].paid != true);
+        require(block.timestamp > proposals[_proposalId].duration);
+        require(proposals[_proposalId].executor == msg.sender);
 
-        _determination(_id);
+        _determination(_proposalId);
 
-        if(proposal[_id].passed) {
-            proposal[_id].paid = true;
-            payable(proposal[_id].beneficiary).transfer(proposal[_id].amount);
+        if(proposals[_proposalId].passed) {
+            proposals[_proposalId].paid = true;
+            payable(proposals[_proposalId].beneficiary).transfer(proposals[_proposalId].amount);
             return true;
         }
         return false;
     }
 
-    function _determination(uint256 _id) internal {
-        require(block.timestamp > proposal[_id].duration);
+    function _determination(uint256 _proposalId) internal {
+        require(block.timestamp > proposals[_proposalId].duration);
 
-        if(proposal[_id].upvotes > proposal[_id].downvotes) {
-            proposal[_id].passed = true;
+        if(proposals[_proposalId].nbYes > proposals[_proposalId].nbNo) {
+            proposals[_proposalId].passed = true;
         } else {
-            proposal[_id].passed = false;
+            proposals[_proposalId].passed = false;
         }
     }
 }
